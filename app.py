@@ -38,7 +38,7 @@ yolo = YOLO("best.pt")
 # -----------------------------
 # 3️⃣ Streamlit Interface
 # -----------------------------
-st.title("🛠️ Manufacturing Defect Detection & Reasoning")
+st.title(" Manufacturing Defect Detection & Reasoning")
 st.write("Upload an image to detect defects, see bounding boxes, and get reasoning.")
 
 uploaded_file = st.file_uploader("Choose an image", type=["jpg", "png", "jpeg"])
@@ -69,11 +69,11 @@ if uploaded_file is not None:
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
 
     # Display image with boxes
-    st.subheader("📸 Detected Defects with Bounding Boxes")
+    st.subheader(" Detected Defects with Bounding Boxes")
     st.image(img_boxes, use_column_width=True)
 
     # Show reasoning
-    st.subheader("🧠 Defect Reasoning")
+    st.subheader(" Defect Reasoning")
     if not detected_defects:
         st.success("No defects detected!")
     else:
@@ -90,3 +90,4 @@ if uploaded_file is not None:
             st.markdown(f"- **Causes:** {info['Causes']}")
             st.markdown(f"- **Prevention:** {info['Prevention']}")
             st.markdown("---")
+
