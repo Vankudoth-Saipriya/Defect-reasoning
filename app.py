@@ -32,7 +32,8 @@ DEFECT_INFO = {
 # -----------------------------
 # 2️⃣ Load YOLOv8 model
 # -----------------------------
-yolo = YOLO("C:/Users/saipr/Desktop/Defectdetection/best.pt")  # path to your YOLOv8 weights
+yolo = YOLO("best.pt")
+ # path to your YOLOv8 weights
 
 # -----------------------------
 # 3️⃣ Streamlit Interface
@@ -89,3 +90,4 @@ if uploaded_file is not None:
             st.markdown(f"- **Causes:** {info['Causes']}")
             st.markdown(f"- **Prevention:** {info['Prevention']}")
             st.markdown("---")
+
