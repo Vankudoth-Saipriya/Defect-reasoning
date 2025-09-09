@@ -1,93 +1,74 @@
-# ============================================
-# Streamlit App: Defect Detection + Reasoning + Bounding Boxes
-# ============================================
-
 import streamlit as st
+import torch
 from ultralytics import YOLO
-import cv2
-import numpy as np
+from ultralytics.nn.tasks import DetectionModel
+from transformers import pipeline
 from PIL import Image
+import os
 
-# -----------------------------
-# 1️⃣ Defect dictionary
-# -----------------------------
-DEFECT_INFO = {
-    "crazing": {
-        "Description": "Fine cracks on the surface of the material.",
-        "Causes": "Rapid cooling, improper stress relief, or material fatigue.",
-        "Prevention": "Controlled cooling, heat treatment, and proper material handling."
-    },
-    "inclusion": {
-        "Description": "Foreign material trapped inside the metal.",
-        "Causes": "Contamination during casting or welding.",
-        "Prevention": "Clean environment, proper material handling, filtration."
-    },
-    "patches": {
-        "Description": "Surface areas with inconsistent texture or coating.",
-        "Causes": "Uneven material application, curing issues, or contamination.",
-        "Prevention": "Uniform coating procedures, proper curing, surface preparation."
-    }
-}
+# --- Fix PyTorch UnpicklingError ---
+torch.serialization.add_safe_globals([DetectionModel])
 
-# -----------------------------
-# 2️⃣ Load YOLOv8 model
-# -----------------------------
-yolo = YOLO("best.pt")
- # path to your YOLOv8 weights
+# --- Load YOLO Model ---
+MODEL_PATH = "best.pt"
+if not os.path.exists(MODEL_PATH):
+    st.error(f"❌ Model file '{MODEL_PATH}' not found in repo.")
+    st.stop()
 
-# -----------------------------
-# 3️⃣ Streamlit Interface
-# -----------------------------
-st.title("🛠️ Manufacturing Defect Detection & Reasoning")
-st.write("Upload an image to detect defects, see bounding boxes, and get reasoning.")
+yolo = YOLO(MODEL_PATH)
 
-uploaded_file = st.file_uploader("Choose an image", type=["jpg", "png", "jpeg"])
-if uploaded_file is not None:
-    # Read image
-    img = Image.open(uploaded_file).convert("RGB")
-    img_np = np.array(img)
+# --- Load Reasoning Model ---
+reasoner = pipeline("text2text-generation", model="google/flan-t5-small", device=-1)
 
-    # Run YOLO detection
-    results = yolo(img_np)
+# --- Streamlit UI ---
+st.title("🔍 Defect Detection & Reasoning")
+st.write("Upload an image to detect defects and get reasoning.")
 
-    # Draw bounding boxes
-    img_boxes = img_np.copy()
-    detected_defects = []
+uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
 
-    for box in results[0].boxes:
+if uploaded_file:
+    image = Image.open(uploaded_file).convert("RGB")
+    st.image(image, caption="Uploaded Image", use_column_width=True)
+
+    # --- YOLO Inference ---
+    results = yolo(image)
+    detections = results[0].boxes
+
+    # --- Annotated Image ---
+    annotated_img = results[0].plot()  # numpy array
+    st.image(annotated_img, caption="Detected Defects", use_column_width=True)
+
+    # --- Extract Defects ---
+    defect_list = []
+    for box in detections:
         cls = int(box.cls.cpu().numpy())
         conf = float(box.conf.cpu().numpy())
-        label = results[0].names[cls]
+        label = yolo.names[cls]
+        defect_list.append(f"{label} ({conf:.2f})")
 
-        # Save detected defect
-        detected_defects.append({"name": label, "confidence": conf})
-
-        # Draw bounding box
-        xyxy = box.xyxy.cpu().numpy()[0].astype(int)  # [x1, y1, x2, y2]
-        cv2.rectangle(img_boxes, (xyxy[0], xyxy[1]), (xyxy[2], xyxy[3]), (0, 255, 0), 2)
-        cv2.putText(img_boxes, f"{label} {conf:.2f}", (xyxy[0], xyxy[1]-10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-
-    # Display image with boxes
-    st.subheader("📸 Detected Defects with Bounding Boxes")
-    st.image(img_boxes, use_column_width=True)
-
-    # Show reasoning
-    st.subheader("🧠 Defect Reasoning")
-    if not detected_defects:
-        st.success("No defects detected!")
+    if defect_list:
+        st.subheader("🔍 Detected Defects")
+        for defect in defect_list:
+            st.write(f"- {defect}")
     else:
-        for det in detected_defects:
-            label = det["name"]
-            conf = det["confidence"]
-            info = DEFECT_INFO.get(label, {
-                "Description": "Unknown",
-                "Causes": "Unknown",
-                "Prevention": "Unknown"
-            })
-            st.markdown(f"**Defect:** {label} ({conf:.2f})")
-            st.markdown(f"- **Description:** {info['Description']}")
-            st.markdown(f"- **Causes:** {info['Causes']}")
-            st.markdown(f"- **Prevention:** {info['Prevention']}")
-            st.markdown("---")
+        st.warning("No defects detected!")
 
+    # --- Reasoning ---
+    defects_text = ", ".join(defect_list)
+    reasoning_prompt = f"""
+    You are a manufacturing quality inspector.
+    Analyze these defects: {defects_text}.
+    Provide a structured reasoning:
+
+    - Defect Name:
+      - Description:
+      - Likely Causes:
+      - Prevention Tips:
+    """
+
+    st.subheader("🧠 Reasoning")
+    try:
+        reasoning = reasoner(reasoning_prompt, max_length=300)[0]['generated_text']
+        st.write(reasoning)
+    except Exception as e:
+        st.error(f"Reasoning generation failed: {e}")
