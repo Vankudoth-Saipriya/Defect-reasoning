@@ -1,9 +1,10 @@
 streamlit
-ultralytics==8.0.196
-torch>=2.0.0
+torch
 torchvision
-opencv-python-headless
+torchaudio
+ultralytics
+transformers
 pillow
-numpy
+
 
 
