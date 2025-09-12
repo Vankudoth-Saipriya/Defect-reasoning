@@ -26,9 +26,23 @@ DEFECT_INFO = {
         "Description": "Surface areas with inconsistent texture or coating.",
         "Causes": "Uneven material application, curing issues, or contamination.",
         "Prevention": "Uniform coating procedures, proper curing, surface preparation."
+    },
+    "pitted_surface": {
+        "Description": "Small, deep holes or depressions on the surface of the material.",
+        "Causes": "Corrosion, improper rolling, or trapped gases during solidification.",
+        "Prevention": "Use corrosion-resistant alloys, improve rolling process, ensure degassing of molten metal."
+    },
+    "rolled-in_scale": {
+        "Description": "Oxide scale rolled into the surface of the steel during hot rolling.",
+        "Causes": "Presence of surface oxide during rolling or insufficient descaling.",
+        "Prevention": "Proper cleaning and descaling before rolling, use of protective atmospheres."
+    },
+    "scratches": {
+        "Description": "Linear marks or grooves on the surface caused by mechanical damage.",
+        "Causes": "Handling defects, friction between surfaces, or improper machining.",
+        "Prevention": "Careful handling, proper lubrication, and use of protective coatings."
     }
 }
-
 # -----------------------------
 # 2️⃣ Load YOLOv8 model
 # -----------------------------
@@ -90,4 +104,5 @@ if uploaded_file is not None:
             st.markdown(f"- **Causes:** {info['Causes']}")
             st.markdown(f"- **Prevention:** {info['Prevention']}")
             st.markdown("---")
+
 
